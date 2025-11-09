@@ -13,10 +13,11 @@ connectDB();
 app.use(express.json());
 app.use(
   cors({
-    origin: [
-      "https://imagebox-tawny.vercel.app",
-      "http://localhost:5173" 
-    ],
+    origin: true,
+    // [
+    //   "https://imagebox-tawny.vercel.app",
+    //   "http://localhost:5173" 
+    // ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true, 
   })
