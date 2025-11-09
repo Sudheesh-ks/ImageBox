@@ -2,7 +2,7 @@ import axios from "axios";
 import { showErrorToast } from "../utils/errorHandler";
 
 export const userApi = axios.create({
-  baseURL: "http://localhost:3000/api",
+  baseURL: `${import.meta.env.VITE_BACKEND_URL}/api`,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
