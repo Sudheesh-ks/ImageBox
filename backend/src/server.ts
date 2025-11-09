@@ -31,6 +31,13 @@ app.get("/", (req, res) => {
 app.use("/api", authRouter);
 app.use("/api/images", imageRouter);
 
-app.listen(PORT, () => {
-  console.log(`Server successfully running at ${PORT}`);
-});
+// ✅ Export app for Vercel
+export default app;
+
+// ✅ Only run listen locally
+if (process.env.NODE_ENV !== "production") {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Server successfully running at ${PORT}`);
+  });
+}
