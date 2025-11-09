@@ -11,17 +11,31 @@ const PORT = process.env.PORT || 3000;
 connectDB();
 
 app.use(express.json());
+// app.use(
+//   cors({
+//     origin: true,
+//     // [
+//     //   "https://imagebox-tawny.vercel.app",
+//     //   "http://localhost:5173" 
+//     // ],
+//     methods: ["GET", "POST", "PUT", "DELETE"],
+//     credentials: true, 
+//   })
+// );
 app.use(
   cors({
-    origin: true,
-    // [
-    //   "https://imagebox-tawny.vercel.app",
-    //   "http://localhost:5173" 
-    // ],
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true, 
+    origin: ["https://imagebox-tawny.vercel.app", "http://localhost:5173"], // explicitly allow your frontend
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
   })
 );
+
+// Handle preflight requests for all routes
+app.options("*", cors({
+  origin: ["https://imagebox-tawny.vercel.app", "http://localhost:5173"],
+  credentials: true,
+}));
+
 app.use(cookieParser());
 
 app.get("/", (req, res) => {
