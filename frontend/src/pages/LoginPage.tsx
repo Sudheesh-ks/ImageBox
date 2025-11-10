@@ -4,7 +4,6 @@ import { showErrorToast } from "../utils/errorHandler";
 import toast from "react-hot-toast";
 import { loginAPI, registerAPI } from "../services/authServices";
 import { useNavigate } from "react-router-dom";
-import { tryAutoLogin } from "../context/authContext";
 
 const LoginPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -19,20 +18,13 @@ const LoginPage = () => {
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
-    if (!token) {
-      tryAutoLogin().then((success) => {
-        if (success) navigate("/dashboard");
-      });
-    } else {
+    if (token) {
       navigate("/dashboard");
     }
   }, [navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async () => {
@@ -44,21 +36,21 @@ const LoginPage = () => {
       showErrorToast("Please fill all required fields.");
       return;
     }
+
     setLoading(true);
     try {
       if (isLogin) {
         const res = await loginAPI(formData.email, formData.password);
-        localStorage.setItem("accessToken", res.token);
-        if (res.success) {
+        if (res?.success && res?.token) {
+          localStorage.setItem("accessToken", res.token);
           toast.success(res.message);
           navigate("/dashboard");
         } else {
           toast.error(res.message);
         }
-        console.log("Login Response:", res);
       } else {
         const res = await registerAPI(formData);
-        if (res.success) {
+        if (res?.success) {
           toast.success(res.message);
           navigate("/verify-otp", {
             state: { email: formData.email, purpose: "register" },
@@ -66,10 +58,9 @@ const LoginPage = () => {
         } else {
           toast.error(res.message);
         }
-        console.log("Register Response:", res);
       }
     } catch (error) {
-      console.log(error);
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -78,7 +69,6 @@ const LoginPage = () => {
   return (
     <div className="min-h-screen bg-linear-to-br from-amber-50 via-orange-50 to-rose-50 flex items-center justify-center p-6">
       <div className="w-full max-w-md">
-        {/* Logo/Title */}
         <div className="text-center mb-8">
           <h1 className="text-5xl font-light text-stone-800 mb-2 tracking-tight">
             ImageBox 🗃
@@ -88,18 +78,14 @@ const LoginPage = () => {
           </p>
         </div>
 
-        {/* Auth Card */}
         <div className="bg-white rounded-3xl shadow-lg p-8">
-          {/* Title */}
           <div className="mb-8">
             <h2 className="text-2xl font-light text-stone-800 mb-2">
               {isLogin ? "Login" : "Create Account"}
             </h2>
           </div>
 
-          {/* Form */}
           <div className="space-y-5">
-            {/* Email Input */}
             <div>
               <label className="block text-sm font-light text-stone-600 mb-2">
                 Email address 📧
@@ -120,7 +106,6 @@ const LoginPage = () => {
               </div>
             </div>
 
-            {/* Phone Input */}
             {!isLogin && (
               <div>
                 <label className="block text-sm font-light text-stone-600 mb-2">
@@ -143,7 +128,6 @@ const LoginPage = () => {
               </div>
             )}
 
-            {/* Password Input */}
             <div>
               <label className="block text-sm font-light text-stone-600 mb-2">
                 Password 🔒
@@ -171,7 +155,6 @@ const LoginPage = () => {
               </div>
             </div>
 
-            {/* Forgot Password (Login only) */}
             {isLogin && (
               <div className="text-right">
                 <button
@@ -184,7 +167,6 @@ const LoginPage = () => {
               </div>
             )}
 
-            {/* Submit Button */}
             <button
               onClick={handleSubmit}
               disabled={loading}
@@ -195,7 +177,7 @@ const LoginPage = () => {
               }`}
             >
               {loading ? (
-                <span>Processing...</span>
+                "Processing..."
               ) : (
                 <>
                   <span>{isLogin ? "Login" : "Create Account"}</span>
@@ -208,7 +190,6 @@ const LoginPage = () => {
             </button>
           </div>
 
-          {/* Switch Auth Mode */}
           <p className="text-center text-sm text-stone-500 font-light mt-6">
             {isLogin ? "Don't have an account? " : "Already have an account? "}
             <button
@@ -219,7 +200,6 @@ const LoginPage = () => {
             </button>
           </p>
 
-          {/* Additional Info */}
           {!isLogin && (
             <p className="text-center text-xs text-stone-500 font-light mt-4 leading-relaxed">
               By creating an account, you agree to our Terms of Service and

@@ -15,10 +15,6 @@ authRouter.post(
   "/password/reset",
   authController.resetPassword.bind(authController)
 );
-authRouter.post(
-  "/refresh-token",
-  authController.refreshToken.bind(authController)
-);
 authRouter.post("/logout", authController.logout.bind(authController));
 
 export default authRouter;

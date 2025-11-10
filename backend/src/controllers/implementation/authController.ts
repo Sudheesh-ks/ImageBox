@@ -25,55 +25,44 @@ export class AuthController implements IAuthController {
   }
 
   async verifyOtp(req: Request, res: Response): Promise<void> {
-    const { email, otp, purpose } = req.body;
-
     try {
+      const { email, otp, purpose } = req.body;
       const result = await this._userService.verifyOtp(
         email,
         otp,
         purpose as "register" | "reset-password"
       );
 
-      if (
-        result.purpose === "register" &&
-        result.user &&
-        result.user._id &&
-        result.refreshToken
-      ) {
-        res.cookie("refreshToken_user", result.refreshToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "lax",
-          path: "/",
-          maxAge: Number(process.env.REFRESH_TOKEN_MAX_AGE),
-        });
-
-        res.status(HttpStatus.CREATED).json({
-          success: true,
-          token: generateAccessToken(result.user._id, result.user.email),
-          message: HttpResponse.REGISTER_SUCCESS,
-        });
+      if (purpose === "register" && result.user) {
+        const token = generateAccessToken(result.user._id!, result.user.email);
+        res
+          .status(HttpStatus.CREATED)
+          .json({
+            success: true,
+            token,
+            message: HttpResponse.REGISTER_SUCCESS,
+          });
         return;
       }
 
-      if (result.purpose === "reset-password") {
-        res.status(HttpStatus.OK).json({
-          success: true,
-          purpose: "reset-password",
-          message: HttpResponse.OTP_VERIFIED,
-        });
+      if (purpose === "reset-password") {
+        res
+          .status(HttpStatus.OK)
+          .json({
+            success: true,
+            purpose: "reset-password",
+            message: HttpResponse.OTP_VERIFIED,
+          });
         return;
       }
 
-      res.status(HttpStatus.BAD_REQUEST).json({
-        success: false,
-        message: HttpResponse.BAD_REQUEST,
-      });
+      res
+        .status(HttpStatus.BAD_REQUEST)
+        .json({ success: false, message: HttpResponse.BAD_REQUEST });
     } catch (error) {
-      res.status(HttpStatus.UNAUTHORIZED).json({
-        success: false,
-        message: (error as Error).message || HttpResponse.OTP_INVALID,
-      });
+      res
+        .status(HttpStatus.UNAUTHORIZED)
+        .json({ success: false, message: (error as Error).message });
     }
   }
 
@@ -132,72 +121,21 @@ export class AuthController implements IAuthController {
   async loginUser(req: Request, res: Response): Promise<void> {
     try {
       const { email, password } = req.body;
-
-      const { token, refreshToken } = await this._userService.login(
-        email,
-        password
-      );
-
-      res.cookie("refreshToken_user", refreshToken, {
-        httpOnly: true,
-        secure: false,
-        sameSite: "lax",
-        path: "/",
-        maxAge: Number(process.env.REFRESH_TOKEN_MAX_AGE), // 7 days
-      });
-      res.status(HttpStatus.OK).json({
-        success: true,
-        token,
-        message: HttpResponse.LOGIN_SUCCESS,
-      });
-      return;
+      const { user } = await this._userService.login(email, password);
+      const token = generateAccessToken(user._id!, user.email);
+      res
+        .status(HttpStatus.OK)
+        .json({ success: true, token, message: HttpResponse.LOGIN_SUCCESS });
     } catch (error) {
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-        success: false,
-        message: (error as Error).message,
-      });
-    }
-  }
-
-  async refreshToken(req: Request, res: Response): Promise<void> {
-    try {
-      const refreshToken = req.cookies?.refreshToken_user;
-
-      const { token, refreshToken: newRefreshToken } =
-        await this._userService.refreshToken(refreshToken);
-
-      res.cookie("refreshToken_user", newRefreshToken, {
-        httpOnly: true,
-        secure: false,
-        sameSite: "lax",
-        path: "/",
-        maxAge: Number(process.env.REFRESH_TOKEN_MAX_AGE), // 7 days
-      });
-      res.status(HttpStatus.OK).json({ success: true, token });
-    } catch (error) {
-      res.status(HttpStatus.UNAUTHORIZED).json({
-        success: false,
-        message: (error as Error).message || HttpResponse.REFRESH_TOKEN_FAILED,
-      });
+      res
+        .status(HttpStatus.BAD_REQUEST)
+        .json({ success: false, message: (error as Error).message });
     }
   }
 
   async logout(req: Request, res: Response): Promise<void> {
-    try {
-      res.clearCookie("refreshToken_user", {
-        httpOnly: true,
-        secure: false,
-        sameSite: "lax",
-        path: "/",
-      });
-      res
-        .status(HttpStatus.OK)
-        .json({ success: true, message: "Logged out successfully" });
-    } catch (err) {
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-        success: false,
-        message: (err as Error).message,
-      });
-    }
+    res
+      .status(HttpStatus.OK)
+      .json({ success: true, message: "Logged out successfully" });
   }
 }

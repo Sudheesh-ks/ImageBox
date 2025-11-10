@@ -20,11 +20,5 @@ export interface IAuthService {
   checkEmailExists(email: string): Promise<boolean>;
   forgotPasswordRequest(email: string): Promise<void>;
   resetPassword(email: string, newPassword: string): Promise<void>;
-  login(
-    email: string,
-    password: string
-  ): Promise<{ user: UserDTO; token: string; refreshToken: string }>;
-  refreshToken(
-    refreshToken?: string
-  ): Promise<{ token: string; refreshToken: string }>;
+  login(email: string, password: string): Promise<{ user: UserDTO }>;
 }

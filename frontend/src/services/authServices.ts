@@ -79,15 +79,15 @@ export const resetPasswordAPI = async (email: string, newPassword: string) => {
   }
 };
 
-// Refresh Token
-export const refreshTokenAPI = async () => {
-  try {
-    const res = await userApi.post(AUTH_API.REFRESH_TOKEN);
-    return res.data;
-  } catch (error) {
-    showErrorToast(error);
-  }
-};
+// // Refresh Token
+// export const refreshTokenAPI = async () => {
+//   try {
+//     const res = await userApi.post(AUTH_API.REFRESH_TOKEN);
+//     return res.data;
+//   } catch (error) {
+//     showErrorToast(error);
+//   }
+// };
 
 // Logout
 // export const logoutAPI = async () => {
@@ -99,12 +99,5 @@ export const refreshTokenAPI = async () => {
 //   }
 // };
 export const logoutAPI = async () => {
-  try {
-    const res = await userApi.post("/logout", {}, { withCredentials: true });
-    localStorage.removeItem("accessToken"); // Remove access token
-    return res.data;
-  } catch (error) {
-    showErrorToast(error);
-  }
+  localStorage.removeItem("accessToken");
 };
-

@@ -4,14 +4,13 @@ import { toUserDTO } from "../../mappers/user.mapper";
 import { userDocument } from "../../models/userModel";
 import { IOtpRepository } from "../../repositories/interface/iOtpRepository";
 import { IAuthRepository } from "../../repositories/interface/iAuthRepository";
-import {
-  generateAccessToken,
-  generateRefreshToken,
-  verifyRefreshToken,
-} from "../../utils/jwt.util";
 import { sendOTP } from "../../utils/mail.util";
 import { generateOTP } from "../../utils/otp.util";
-import { isValidEmail, isValidPassword, isValidPhone } from "../../utils/validator.util";
+import {
+  isValidEmail,
+  isValidPassword,
+  isValidPhone,
+} from "../../utils/validator.util";
 import { IAuthService } from "../interface/iAuthService";
 import bcrypt from "bcrypt";
 
@@ -26,79 +25,49 @@ export class AuthService implements IAuthService {
     password: string,
     phone: string
   ): Promise<void> {
-    if (!email || !password || !phone) {
+    if (!email || !password || !phone)
       throw new Error(HttpResponse.FIELDS_REQUIRED);
-    }
-
-    if (!isValidEmail(email)) {
-      throw new Error(HttpResponse.INVALID_EMAIL);
-    }
-
-    if (!isValidPassword(password)) {
+    if (!isValidEmail(email)) throw new Error(HttpResponse.INVALID_EMAIL);
+    if (!isValidPassword(password))
       throw new Error(HttpResponse.INVALID_PASSWORD);
-    }
-
-    if(!isValidPhone(phone)){
-      throw new Error(HttpResponse.INVALID_PHONE);
-    }
+    if (!isValidPhone(phone)) throw new Error(HttpResponse.INVALID_PHONE);
 
     const existing = await this._userRepository.findUserByEmail(email);
-    if (existing) {
-      throw new Error(HttpResponse.EMAIL_ALREADY_EXISTS);
-    }
+    if (existing) throw new Error(HttpResponse.EMAIL_ALREADY_EXISTS);
 
-    const hashed = await this.hashPassword(password);
+    const hashed = await bcrypt.hash(password, 10);
     const otp = generateOTP();
     console.log("Generated OTP:", otp);
-
     await this._otpRepository.storeOtp(email, {
       otp,
       purpose: "register",
       userData: { email, password: hashed, phone },
     });
-
-    try {
-      await sendOTP(email, otp);
-    } catch (error) {
-      console.error("Email send failed:", error);
-      throw new Error(HttpResponse.OTP_SEND_FAILED);
-    }
+    await sendOTP(email, otp);
   }
+
   async verifyOtp(
     email: string,
     otp: string,
     purpose: "register" | "reset-password"
-  ): Promise<{
-    purpose: string;
-    user?: UserDTO;
-    refreshToken?: string;
-  }> {
+  ): Promise<{ purpose: string; user?: UserDTO }> {
     const record = await this._otpRepository.getOtp(email, otp, purpose);
+    if (!record) throw new Error(HttpResponse.OTP_INVALID);
 
-    if (!record) {
-      throw new Error(HttpResponse.OTP_INVALID);
-    }
-
-    if (purpose === "register") {
-      if (
-        !record.userData ||
-        !record.userData.email ||
-        !record.userData.password ||
-        !record.userData.phone
-      ) {
-        throw new Error("User data missing for registration");
-      }
-
+    if (
+      purpose === "register" &&
+      record.userData &&
+      record.userData.email &&
+      record.userData.password &&
+      record.userData.phone
+    ) {
       const newUser = await this.finalizeRegister({
         email: record.userData.email,
         password: record.userData.password,
         phone: record.userData.phone,
       });
-
       await this._otpRepository.deleteOtp(email);
-
-      const refreshToken = generateRefreshToken(newUser._id!);
-      return { purpose, user: newUser, refreshToken };
+      return { purpose, user: newUser };
     }
 
     if (purpose === "reset-password") {
@@ -109,24 +78,27 @@ export class AuthService implements IAuthService {
     throw new Error(HttpResponse.BAD_REQUEST);
   }
 
-  async hashPassword(password: string) {
-    return await bcrypt.hash(password, 10);
-  }
   async finalizeRegister(userData: {
     email: string;
     password: string;
     phone: string;
   }): Promise<UserDTO> {
-    const existing = await this._userRepository.findUserByEmail(userData.email);
-    if (existing) throw new Error("User already exists");
-
-    const newUser = (await this._userRepository.createUser({
-      email: userData.email,
-      password: userData.password,
-      phone: userData.phone,
-    })) as userDocument;
-
+    const newUser = (await this._userRepository.createUser(
+      userData
+    )) as userDocument;
     return toUserDTO(newUser);
+  }
+
+  async login(email: string, password: string): Promise<{ user: UserDTO }> {
+    const user = await this._userRepository.findUserByEmail(email);
+    if (!user) throw new Error(HttpResponse.INVALID_CREDENTIALS);
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) throw new Error(HttpResponse.INCORRECT_PASSWORD);
+    return { user: toUserDTO(user) };
+  }
+
+  async hashPassword(password: string) {
+    return await bcrypt.hash(password, 10);
   }
 
   async resendOtp(email: string): Promise<void> {
@@ -193,64 +165,5 @@ export class AuthService implements IAuthService {
     }
 
     this._otpRepository.deleteOtp(email);
-  }
-
-  async login(
-    email: string,
-    password: string
-  ): Promise<{ user: UserDTO; token: string; refreshToken: string }> {
-    if (!email || !password) {
-      throw new Error(HttpResponse.FIELDS_REQUIRED);
-    }
-
-    if (!isValidEmail(email)) {
-      throw new Error(HttpResponse.INVALID_EMAIL);
-    }
-
-    if (!isValidPassword(password)) {
-      throw new Error(HttpResponse.INVALID_PASSWORD);
-    }
-
-    const user = await this._userRepository.findUserByEmail(email);
-    if (!user) {
-      throw new Error(HttpResponse.INVALID_CREDENTIALS);
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      throw new Error(HttpResponse.INCORRECT_PASSWORD);
-    }
-
-    const token = generateAccessToken(user._id.toString(), user.email);
-    const refreshToken = generateRefreshToken(user._id.toString());
-
-    return {
-      user: toUserDTO(user),
-      token,
-      refreshToken,
-    };
-  }
-
-  async refreshToken(
-    refreshToken?: string
-  ): Promise<{ token: string; refreshToken: string }> {
-    if (!refreshToken) {
-      throw new Error(HttpResponse.REFRESH_TOKEN_MISSING);
-    }
-
-    const decoded = verifyRefreshToken(refreshToken);
-    if (!decoded || typeof decoded !== "object" || !("id" in decoded)) {
-      throw new Error(HttpResponse.REFRESH_TOKEN_INVALID);
-    }
-
-    const user = await this._userRepository.findUserById(decoded.id);
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    const newAccessToken = generateAccessToken(user._id.toString(), user.email);
-    const newRefreshToken = generateRefreshToken(user._id.toString());
-
-    return { token: newAccessToken, refreshToken: newRefreshToken };
   }
 }
