@@ -1,9 +1,12 @@
-import express from "express";
+import express, { Request, Response, NextFunction } from "express";
+import dotenv from "dotenv";
 import { connectDB } from "./config/mongodb";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import authRouter from "./routes/authRoute";
 import imageRouter from "./routes/imageRoute";
+
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
