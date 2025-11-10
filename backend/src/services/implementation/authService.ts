@@ -43,7 +43,7 @@ export class AuthService implements IAuthService {
       purpose: "register",
       userData: { email, password: hashed, phone },
     });
-    await sendOTP(email, otp);
+    sendOTP(email, otp).catch(err => console.error("OTP send failed:", err));
   }
 
   async verifyOtp(
@@ -114,7 +114,7 @@ export class AuthService implements IAuthService {
     const updatedRecord = { ...oldRecord, otp: newOtp };
 
     await this._otpRepository.storeOtp(email, updatedRecord);
-    await sendOTP(email, newOtp);
+    sendOTP(email, newOtp).catch(err => console.error("OTP resend failed:", err));
   }
 
   async checkEmailExists(email: string): Promise<boolean> {
@@ -136,7 +136,7 @@ export class AuthService implements IAuthService {
       purpose: "reset-password",
     });
 
-    await sendOTP(email, otp);
+    sendOTP(email, otp).catch(err => console.error("OTP send failed:", err));
   }
 
   async resetPassword(email: string, newPassword: string): Promise<void> {
