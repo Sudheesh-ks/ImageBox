@@ -4,6 +4,8 @@ import { IImageRepository } from "../../repositories/interface/iImageRepository"
 import { ImageDocument } from "../../models/imageModel";
 import { IImageService } from "../interface/iImageServices";
 import mongoose from "mongoose";
+import { ImageDTO } from "../../dtos/image.dto";
+import { toImageDTO, toImageDTOs } from "../../mappers/image.mapper";
 
 export class ImageService implements IImageService {
   constructor(private readonly _imageRepository: IImageRepository) {}
@@ -12,7 +14,7 @@ export class ImageService implements IImageService {
     files: Express.Multer.File[],
     titles: string[],
     userId: string
-  ): Promise<ImageDocument[]> {
+  ): Promise<ImageDTO[]> {
     const uploadedImages = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -27,21 +29,22 @@ export class ImageService implements IImageService {
 
       uploadedImages.push(image);
     }
-    return uploadedImages;
+    return toImageDTOs(uploadedImages);
   }
 
   async getImages(
     userId: string
-  ): Promise<{ images: ImageDocument[]; total: number }> {
+  ): Promise<{ images: ImageDTO[]; total: number }> {
     if (!userId) throw new Error(HttpResponse.UNAUTHORIZED);
-    return await this._imageRepository.getImagesPaginated(userId);
+    const { images, total } = await this._imageRepository.getImagesPaginated(userId);
+    return { images: toImageDTOs(images), total };
   }
 
   async updateImage(
     id: string,
     title: string,
     newFile?: Express.Multer.File
-  ): Promise<ImageDocument | null> {
+  ): Promise<ImageDTO | null> {
     if (!id) throw new Error(HttpResponse.FIELDS_REQUIRED);
 
     let updates: Partial<ImageDocument> = { title };
@@ -60,7 +63,7 @@ export class ImageService implements IImageService {
     );
     if (!updatedImage) throw new Error(HttpResponse.IMAGE_UPDATE_FAILED);
 
-    return updatedImage;
+    return toImageDTO(updatedImage);
   }
 
   async deleteImage(id: string, public_id: string): Promise<void> {
