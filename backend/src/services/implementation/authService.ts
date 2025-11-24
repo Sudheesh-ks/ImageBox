@@ -13,6 +13,7 @@ import {
 } from "../../utils/validator.util";
 import { IAuthService } from "../interface/iAuthService";
 import bcrypt from "bcrypt";
+import { AuthPurpose } from "../../constants/authPurpose.constants";
 
 export class AuthService implements IAuthService {
   constructor(
@@ -40,22 +41,22 @@ export class AuthService implements IAuthService {
     console.log("Generated OTP:", otp);
     await this._otpRepository.storeOtp(email, {
       otp,
-      purpose: "register",
+      purpose: AuthPurpose.REGISTER,
       userData: { email, password: hashed, phone },
     });
-    sendOTP(email, otp).catch(err => console.error("OTP send failed:", err));
+    sendOTP(email, otp).catch((err) => console.error("OTP send failed:", err));
   }
 
   async verifyOtp(
     email: string,
     otp: string,
-    purpose: "register" | "reset-password"
+    purpose: AuthPurpose
   ): Promise<{ purpose: string; user?: UserDTO }> {
     const record = await this._otpRepository.getOtp(email, otp, purpose);
     if (!record) throw new Error(HttpResponse.OTP_INVALID);
 
     if (
-      purpose === "register" &&
+      purpose === AuthPurpose.REGISTER &&
       record.userData &&
       record.userData.email &&
       record.userData.password &&
@@ -70,7 +71,7 @@ export class AuthService implements IAuthService {
       return { purpose, user: newUser };
     }
 
-    if (purpose === "reset-password") {
+    if (purpose === AuthPurpose.RESET_PASSWORD) {
       await this._otpRepository.storeOtp(email, { otp: "VERIFIED", purpose });
       return { purpose };
     }
@@ -114,12 +115,20 @@ export class AuthService implements IAuthService {
     const updatedRecord = { ...oldRecord, otp: newOtp };
 
     await this._otpRepository.storeOtp(email, updatedRecord);
-    sendOTP(email, newOtp).catch(err => console.error("OTP resend failed:", err));
+    sendOTP(email, newOtp).catch((err) =>
+      console.error("OTP resend failed:", err)
+    );
   }
 
   async checkEmailExists(email: string): Promise<boolean> {
     const user = await this._userRepository.findUserByEmail(email);
     return !!user;
+  }
+
+  async getUserById(id: string): Promise<UserDTO | null> {
+    const user = await this._userRepository.findUserById(id);
+    if (!user) return null;
+    return toUserDTO(user);
   }
 
   async forgotPasswordRequest(email: string): Promise<void> {
@@ -133,10 +142,10 @@ export class AuthService implements IAuthService {
 
     await this._otpRepository.storeOtp(email, {
       otp,
-      purpose: "reset-password",
+      purpose: AuthPurpose.RESET_PASSWORD,
     });
 
-    sendOTP(email, otp).catch(err => console.error("OTP send failed:", err));
+    sendOTP(email, otp).catch((err) => console.error("OTP send failed:", err));
   }
 
   async resetPassword(email: string, newPassword: string): Promise<void> {
@@ -148,7 +157,7 @@ export class AuthService implements IAuthService {
 
     if (
       !record ||
-      record.purpose !== "reset-password" ||
+      record.purpose !== AuthPurpose.RESET_PASSWORD ||
       record.otp !== "VERIFIED"
     ) {
       throw new Error(HttpResponse.OTP_EXPIRED_OR_INVALID);

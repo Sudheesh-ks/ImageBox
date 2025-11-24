@@ -12,8 +12,8 @@ export const generateAccessToken = (id: string, email: string) => {
   return jwt.sign({ id, email }, JWT_SECRET, { expiresIn: "15m" });
 };
 
-export const generateRefreshToken = (id: string) => {
-  return jwt.sign({ id }, JWT_REFRESH_SECRET, { expiresIn: "7d" });
+export const generateRefreshToken = (id: string, email: string) => {
+  return jwt.sign({ id, email }, JWT_REFRESH_SECRET, { expiresIn: "7d" });
 };
 
 export const verifyAccessToken = (token: string): JwtPayload => {

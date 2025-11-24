@@ -18,6 +18,7 @@ export interface IAuthService {
   }): Promise<UserDTO>;
   resendOtp(email: string): Promise<void>;
   checkEmailExists(email: string): Promise<boolean>;
+  getUserById(id: string): Promise<UserDTO | null>;
   forgotPasswordRequest(email: string): Promise<void>;
   resetPassword(email: string, newPassword: string): Promise<void>;
   login(email: string, password: string): Promise<{ user: UserDTO }>;

@@ -8,7 +8,7 @@ import {
   deleteImageAPI,
   updateImageOrderAPI,
 } from "../services/imageServices";
-import { logoutAPI } from "../services/authServices";
+import { logoutAPI, refreshTokenAPI } from "../services/authServices";
 import ConfirmModal from "../components/confirmModal";
 import ImageUploadModal from "../components/imageUploader";
 import type { ImageType, SelectedFile } from "../types/dashboard";
@@ -45,13 +45,17 @@ const Dashboard: React.FC = () => {
   const editFileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      navigate("/", { replace: true });
-    } else {
-      void fetchImages();
-    }
-  }, [navigate]);
+    const initialize = async () => {
+      const accessToken = await refreshTokenAPI();
+      if (accessToken) {
+        fetchImages();
+      } else {
+        navigate("/", { replace: true });
+      }
+    };
+
+    initialize();
+  }, []);
 
   const fetchImages = async (): Promise<void> => {
     setLoading(true);

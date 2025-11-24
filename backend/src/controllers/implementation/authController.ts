@@ -2,8 +2,13 @@ import { Request, Response } from "express";
 import { HttpResponse } from "../../constants/responseMessage.constants";
 import { HttpStatus } from "../../constants/status.constants";
 import { IAuthService } from "../../services/interface/iAuthService";
-import { generateAccessToken } from "../../utils/jwt.util";
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyRefreshToken,
+} from "../../utils/jwt.util";
 import { IAuthController } from "../interface/iAuthInterface";
+import { AuthPurpose } from "../../constants/authPurpose.constants";
 
 export class AuthController implements IAuthController {
   constructor(private readonly _userService: IAuthService) {}
@@ -30,29 +35,40 @@ export class AuthController implements IAuthController {
       const result = await this._userService.verifyOtp(
         email,
         otp,
-        purpose as "register" | "reset-password"
+        purpose as AuthPurpose
       );
 
-      if (purpose === "register" && result.user) {
-        const token = generateAccessToken(result.user._id!, result.user.email);
-        res
-          .status(HttpStatus.CREATED)
-          .json({
-            success: true,
-            token,
-            message: HttpResponse.REGISTER_SUCCESS,
-          });
+      if (purpose === AuthPurpose.REGISTER && result.user) {
+        const accessToken = generateAccessToken(
+          result.user._id!,
+          result.user.email
+        );
+        const refreshToken = generateRefreshToken(
+          result.user._id!,
+          result.user.email
+        );
+
+        res.cookie("refreshToken", refreshToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict",
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+
+        res.status(HttpStatus.CREATED).json({
+          success: true,
+          accessToken,
+          message: HttpResponse.REGISTER_SUCCESS,
+        });
         return;
       }
 
-      if (purpose === "reset-password") {
-        res
-          .status(HttpStatus.OK)
-          .json({
-            success: true,
-            purpose: "reset-password",
-            message: HttpResponse.OTP_VERIFIED,
-          });
+      if (purpose === AuthPurpose.RESET_PASSWORD) {
+        res.status(HttpStatus.OK).json({
+          success: true,
+          purpose: AuthPurpose.RESET_PASSWORD,
+          message: HttpResponse.OTP_VERIFIED,
+        });
         return;
       }
 
@@ -121,21 +137,68 @@ export class AuthController implements IAuthController {
   async loginUser(req: Request, res: Response): Promise<void> {
     try {
       const { email, password } = req.body;
+
       const { user } = await this._userService.login(email, password);
-      const token = generateAccessToken(user._id!, user.email);
-      res
-        .status(HttpStatus.OK)
-        .json({ success: true, token, message: HttpResponse.LOGIN_SUCCESS });
+
+      const accessToken = generateAccessToken(user._id!, user.email);
+      const refreshToken = generateRefreshToken(user._id!, user.email);
+
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+
+      res.status(HttpStatus.OK).json({
+        success: true,
+        accessToken,
+        message: HttpResponse.LOGIN_SUCCESS,
+      });
     } catch (error) {
-      res
-        .status(HttpStatus.BAD_REQUEST)
-        .json({ success: false, message: (error as Error).message });
+      res.status(HttpStatus.BAD_REQUEST).json({
+        success: false,
+        message: (error as Error).message,
+      });
     }
   }
 
   async logout(req: Request, res: Response): Promise<void> {
-    res
-      .status(HttpStatus.OK)
-      .json({ success: true, message: "Logged out successfully" });
+    res.clearCookie("refreshToken");
+    res.status(HttpStatus.OK).json({
+      success: true,
+      message: "Logged out successfully",
+    });
   }
+
+
+  async refreshToken(req: Request, res: Response): Promise<void> {
+  try {
+    const token = req.cookies.refreshToken;
+    if (!token) {
+       res.status(401).json({ success: false, message: "No refresh token" });
+       return
+    }
+
+    const decoded = verifyRefreshToken(token);
+
+    const user = await this._userService.getUserById(decoded.id);
+
+    const newAccessToken = generateAccessToken(decoded.id, user!.email);
+
+     res.status(200).json({
+      success: true,
+      accessToken: newAccessToken,
+    });
+    return
+
+  } catch (error) {
+     res.status(401).json({
+      success: false,
+      message: "Invalid refresh token",
+    });
+    return
+  }
+}
+
 }

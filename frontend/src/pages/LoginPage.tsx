@@ -17,11 +17,11 @@ const LoginPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (token) {
+    const accessToken = localStorage.getItem("accessToken");
+    if (accessToken) {
       navigate("/dashboard");
     }
-  }, [navigate]);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -41,8 +41,8 @@ const LoginPage = () => {
     try {
       if (isLogin) {
         const res = await loginAPI(formData.email, formData.password);
-        if (res?.success && res?.token) {
-          localStorage.setItem("accessToken", res.token);
+        if (res?.success) {
+          localStorage.setItem("accessToken", res.accessToken);
           toast.success(res.message);
           navigate("/dashboard");
         } else {

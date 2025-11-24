@@ -79,25 +79,28 @@ export const resetPasswordAPI = async (email: string, newPassword: string) => {
   }
 };
 
-// // Refresh Token
-// export const refreshTokenAPI = async () => {
-//   try {
-//     const res = await userApi.post(AUTH_API.REFRESH_TOKEN);
-//     return res.data;
-//   } catch (error) {
-//     showErrorToast(error);
-//   }
-// };
+// Refresh token
+export const refreshTokenAPI = async (): Promise<string | null> => {
+  try {
+    const res = await userApi.get(AUTH_API.REFRESH_TOKEN, {
+      withCredentials: true,
+    });
+    const accessToken = res.data.accessToken;
+    localStorage.setItem("accessToken", accessToken);
+    return accessToken;
+  } catch (error) {
+    console.error("Refresh token failed:", error);
+    localStorage.removeItem("accessToken");
+    return null;
+  }
+};
 
 // Logout
-// export const logoutAPI = async () => {
-//   try {
-//     const res = await userApi.post(AUTH_API.LOGOUT);
-//     return res.data;
-//   } catch (error) {
-//     showErrorToast(error);
-//   }
-// };
 export const logoutAPI = async () => {
-  localStorage.removeItem("accessToken");
+  try {
+    const res = await userApi.post(AUTH_API.LOGOUT);
+    return res.data;
+  } catch (error) {
+    showErrorToast(error);
+  }
 };
