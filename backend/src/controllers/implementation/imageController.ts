@@ -3,6 +3,7 @@ import { HttpResponse } from "../../constants/responseMessage.constants";
 import { HttpStatus } from "../../constants/status.constants";
 import { IImageController } from "../interface/iImageInterface";
 import { IImageService } from "../../services/interface/iImageServices";
+import { sendResponse } from "../../utils/apiResponse";
 
 export class ImageController implements IImageController {
   constructor(private readonly _imageService: IImageService) {}
@@ -16,9 +17,7 @@ export class ImageController implements IImageController {
       if (!Array.isArray(titles)) titles = [titles];
 
       if (!files?.length) {
-        res
-          .status(400)
-          .json({ success: false, message: HttpResponse.NO_FILE_PROVIDED });
+        sendResponse(res, 400, false, HttpResponse.NO_FILE_PROVIDED);
         return;
       }
 
@@ -27,16 +26,16 @@ export class ImageController implements IImageController {
         titles,
         userId!.toString()
       );
-      res.status(201).json({
-        success: true,
-        data: uploadedImages,
-        message: HttpResponse.IMAGE_UPLOADED,
-      });
+      sendResponse(res, 201, true, HttpResponse.IMAGE_UPLOADED, uploadedImages);
     } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: (error as Error).message || HttpResponse.IMAGE_UPLOAD_FAILED,
-      });
+      sendResponse(
+        res,
+        500,
+        false,
+        (error as Error).message || HttpResponse.IMAGE_UPLOAD_FAILED,
+        null,
+        error
+      );
     }
   }
 
@@ -47,21 +46,21 @@ export class ImageController implements IImageController {
 
       const result = await this._imageService.getImages(userId!.toString());
 
-      res.status(HttpStatus.OK).json({
-        success: true,
-        data: {
-          images: result.images,
-          total: result.total,
-          totalPages: Math.ceil(result.total / parseInt(limit as string)),
-          currentPage: parseInt(page as string),
-        },
-        message: HttpResponse.IMAGES_FETCHED,
+      sendResponse(res, HttpStatus.OK, true, HttpResponse.IMAGES_FETCHED, {
+        images: result.images,
+        total: result.total,
+        totalPages: Math.ceil(result.total / parseInt(limit as string)),
+        currentPage: parseInt(page as string),
       });
     } catch (error) {
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-        success: false,
-        message: (error as Error).message || HttpResponse.IMAGE_FETCH_FAILED,
-      });
+      sendResponse(
+        res,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        false,
+        (error as Error).message || HttpResponse.IMAGE_FETCH_FAILED,
+        null,
+        error
+      );
     }
   }
 
@@ -72,16 +71,22 @@ export class ImageController implements IImageController {
 
       const updated = await this._imageService.updateImage(id, title, req.file);
 
-      res.status(HttpStatus.OK).json({
-        success: true,
-        data: updated,
-        message: HttpResponse.IMAGE_UPDATED,
-      });
+      sendResponse(
+        res,
+        HttpStatus.OK,
+        true,
+        HttpResponse.IMAGE_UPDATED,
+        updated
+      );
     } catch (error) {
-      res.status(HttpStatus.BAD_REQUEST).json({
-        success: false,
-        message: (error as Error).message || HttpResponse.IMAGE_UPDATE_FAILED,
-      });
+      sendResponse(
+        res,
+        HttpStatus.BAD_REQUEST,
+        false,
+        (error as Error).message || HttpResponse.IMAGE_UPDATE_FAILED,
+        null,
+        error
+      );
     }
   }
 
@@ -92,15 +97,16 @@ export class ImageController implements IImageController {
 
       await this._imageService.deleteImage(id, public_id);
 
-      res.status(HttpStatus.OK).json({
-        success: true,
-        message: HttpResponse.IMAGE_DELETED,
-      });
+      sendResponse(res, HttpStatus.OK, true, HttpResponse.IMAGE_DELETED);
     } catch (error) {
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-        success: false,
-        message: (error as Error).message || HttpResponse.IMAGE_DELETE_FAILED,
-      });
+      sendResponse(
+        res,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        false,
+        (error as Error).message || HttpResponse.IMAGE_DELETE_FAILED,
+        null,
+        error
+      );
     }
   }
 
@@ -110,19 +116,21 @@ export class ImageController implements IImageController {
       const { orderedIds } = req.body;
 
       if (!Array.isArray(orderedIds)) {
-        res
-          .status(400)
-          .json({ success: false, message: "Invalid data format" });
+        sendResponse(res, 400, false, "Invalid data format");
         return;
       }
 
       await this._imageService.updateImageOrder(userId, orderedIds);
-      res.status(200).json({ success: true, message: "Image order updated" });
+      sendResponse(res, 200, true, "Image order updated");
     } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: (error as Error).message || "Failed to update image order",
-      });
+      sendResponse(
+        res,
+        500,
+        false,
+        (error as Error).message || "Failed to update image order",
+        null,
+        error
+      );
     }
   }
 }
