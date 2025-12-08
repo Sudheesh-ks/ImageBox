@@ -20,6 +20,7 @@ export class AuthController implements IAuthController {
     try {
       await this._userService.register(email, password, phone);
       sendResponse(res, HttpStatus.OK, true, HttpResponse.OTP_SENT);
+
     } catch (error) {
       res.status(HttpStatus.BAD_REQUEST).json({
         success: false,
@@ -52,44 +53,26 @@ export class AuthController implements IAuthController {
           secure: true,
           sameSite: "none",
           domain: process.env.COOKIE_DOMAIN,
-          path: "/",
+          path: '/',
           maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
-        sendResponse(
-          res,
-          HttpStatus.CREATED,
-          true,
-          HttpResponse.REGISTER_SUCCESS,
-          {
-            accessToken,
-          }
-        );
+        sendResponse(res, HttpStatus.CREATED, true, HttpResponse.REGISTER_SUCCESS, {
+  accessToken,
+});
         return;
       }
 
       if (purpose === AuthPurpose.RESET_PASSWORD) {
         sendResponse(res, HttpStatus.OK, true, HttpResponse.OTP_VERIFIED, {
-          purpose: AuthPurpose.RESET_PASSWORD,
-        });
+  purpose: AuthPurpose.RESET_PASSWORD,
+});
         return;
       }
 
-      sendResponse(
-        res,
-        HttpStatus.BAD_REQUEST,
-        false,
-        HttpResponse.BAD_REQUEST
-      );
+      sendResponse(res, HttpStatus.BAD_REQUEST, false, HttpResponse.BAD_REQUEST);
     } catch (error) {
-      sendResponse(
-        res,
-        HttpStatus.UNAUTHORIZED,
-        false,
-        (error as Error).message,
-        null,
-        error
-      );
+           sendResponse(res, HttpStatus.UNAUTHORIZED, false, (error as Error).message, null, error);
     }
   }
 
@@ -101,13 +84,13 @@ export class AuthController implements IAuthController {
       sendResponse(res, HttpStatus.OK, true, HttpResponse.OTP_RESENT);
     } catch (error) {
       sendResponse(
-        res,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-        false,
-        (error as Error).message || HttpResponse.OTP_SEND_FAILED,
-        null,
-        error
-      );
+  res,
+  HttpStatus.INTERNAL_SERVER_ERROR,
+  false,
+  (error as Error).message || HttpResponse.OTP_SEND_FAILED,
+  null,
+  error
+);
     }
   }
 
@@ -119,13 +102,13 @@ export class AuthController implements IAuthController {
       sendResponse(res, HttpStatus.OK, true, HttpResponse.OTP_SENT);
     } catch (error) {
       sendResponse(
-        res,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-        false,
-        (error as Error).message || HttpResponse.OTP_SEND_FAILED,
-        null,
-        error
-      );
+  res,
+  HttpStatus.INTERNAL_SERVER_ERROR,
+  false,
+  (error as Error).message || HttpResponse.OTP_SEND_FAILED,
+  null,
+  error
+);
     }
   }
 
@@ -137,13 +120,13 @@ export class AuthController implements IAuthController {
       sendResponse(res, HttpStatus.OK, true, HttpResponse.PASSWORD_UPDATED);
     } catch (error) {
       sendResponse(
-        res,
-        HttpStatus.BAD_REQUEST,
-        false,
-        (error as Error).message || HttpResponse.OTP_EXPIRED_OR_INVALID,
-        null,
-        error
-      );
+  res,
+  HttpStatus.BAD_REQUEST,
+  false,
+  (error as Error).message || HttpResponse.OTP_EXPIRED_OR_INVALID,
+  null,
+  error
+);
     }
   }
 
@@ -161,22 +144,15 @@ export class AuthController implements IAuthController {
         secure: true,
         sameSite: "none",
         domain: process.env.COOKIE_DOMAIN,
-        path: "/",
+        path: '/',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
       sendResponse(res, HttpStatus.OK, true, HttpResponse.LOGIN_SUCCESS, {
-        accessToken,
-      });
+  accessToken,
+});
     } catch (error) {
-      sendResponse(
-        res,
-        HttpStatus.BAD_REQUEST,
-        false,
-        (error as Error).message,
-        null,
-        error
-      );
+      sendResponse(res, HttpStatus.BAD_REQUEST, false, (error as Error).message, null, error);
     }
   }
 
@@ -185,27 +161,34 @@ export class AuthController implements IAuthController {
     sendResponse(res, HttpStatus.OK, true, "Logged out successfully");
   }
 
+
   async refreshToken(req: Request, res: Response): Promise<void> {
-    try {
-      const token = req.cookies.refreshToken;
-      if (!token) {
-        res.status(401).json({ success: false, message: "No refresh token" });
-        return;
-      }
-
-      const decoded = verifyRefreshToken(token);
-
-      const user = await this._userService.getUserById(decoded.id);
-
-      const newAccessToken = generateAccessToken(decoded.id, user!.email);
-
-      sendResponse(res, 200, true, "New access token generated", {
-        accessToken: newAccessToken,
-      });
-      return;
-    } catch (error) {
-      sendResponse(res, 401, false, "Invalid refresh token", null, error);
-      return;
+  try {
+    const token = req.cookies.refreshToken;
+    if (!token) {
+       res.status(401).json({ success: false, message: "No refresh token" });
+       return
     }
+
+    const decoded = verifyRefreshToken(token);
+
+    const user = await this._userService.getUserById(decoded.id);
+
+    const newAccessToken = generateAccessToken(decoded.id, user!.email);
+
+     res.status(200).json({
+      success: true,
+      accessToken: newAccessToken,
+    });
+    return
+
+  } catch (error) {
+     res.status(401).json({
+      success: false,
+      message: "Invalid refresh token",
+    });
+    return
   }
+}
+
 }

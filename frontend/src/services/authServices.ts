@@ -85,7 +85,7 @@ export const refreshTokenAPI = async (): Promise<string | null> => {
     const res = await userApi.get(AUTH_API.REFRESH_TOKEN, {
       withCredentials: true,
     });
-    const accessToken = res.data.data.accessToken;
+    const accessToken = res.data.accessToken;
     localStorage.setItem("accessToken", accessToken);
     return accessToken;
   } catch (error) {
