@@ -27,7 +27,7 @@ const OtpVerificationPage = () => {
         toast.success("OTP verified! Proceed to reset password");
         navigate("/reset-password", { state: { email } });
       } else {
-        localStorage.setItem("accessToken", res.token);
+        localStorage.setItem("accessToken", res.data.token);
         toast.success("OTP verified successfully");
         navigate("/dashboard");
       }

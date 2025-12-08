@@ -42,7 +42,7 @@ const LoginPage = () => {
       if (isLogin) {
         const res = await loginAPI(formData.email, formData.password);
         if (res?.success) {
-          localStorage.setItem("accessToken", res.accessToken);
+          localStorage.setItem("accessToken", res.data.accessToken);
           toast.success(res.message);
           navigate("/dashboard");
         } else {
