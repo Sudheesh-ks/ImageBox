@@ -54,8 +54,8 @@ export class AuthController implements IAuthController {
 
         res.cookie("refreshToken", refreshToken, {
           httpOnly: true,
-          secure: false,
-          sameSite: "lax",
+          secure: true,
+          sameSite: "none",
           domain: process.env.COOKIE_DOMAIN,
           path: '/',
           maxAge: 7 * 24 * 60 * 60 * 1000,
@@ -145,8 +145,8 @@ export class AuthController implements IAuthController {
 
       res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
-        secure: false,
-        sameSite: "lax",
+        secure: true,
+        sameSite: "none",
         domain: process.env.COOKIE_DOMAIN,
         path: '/',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
@@ -163,8 +163,8 @@ export class AuthController implements IAuthController {
   async logout(req: Request, res: Response): Promise<void> {
     res.clearCookie("refreshToken", {
       httpOnly: true,
-      secure: false,
-      sameSite: "lax",
+      secure: true,
+      sameSite: "none",
       domain: process.env.COOKIE_DOMAIN,
       path: "/",
     });
