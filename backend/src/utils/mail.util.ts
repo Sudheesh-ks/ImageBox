@@ -1,36 +1,23 @@
-import nodemailer from "nodemailer";
+import * as SibApiV3Sdk from "sib-api-v3-sdk";
 import dotenv from "dotenv";
-dotenv.config();
 
-const { MAIL_EMAIL, MAIL_PASSWORD } = process.env as Record<string, string>;
+dotenv.config()
 
-console.log("Mail Config:", {
-  user: MAIL_EMAIL ? "Present" : "Missing",
-  pass: MAIL_PASSWORD ? "Present" : "Missing"
-});
 
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true, // Use SSL
-  auth: { user: MAIL_EMAIL, pass: MAIL_PASSWORD },
-});
+const defaultClient = SibApiV3Sdk.ApiClient.instance;
+const apiKey = defaultClient.authentications['api-key'];
+apiKey.apiKey = process.env.BREVO_API_KEY; 
 
-export const sendEmail = async (to: string, subject: string, html: string) => {
-  try {
-    const info = await transporter.sendMail({ from: MAIL_EMAIL, to, subject, html });
-    console.log("Email sent successfully:", info.messageId);
-  } catch (error) {
-    console.error("Error sending email:", error);
-    throw error;
-  }
-};
+const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 
-// OTP
-export const sendOTP = async (email: string, otp: string) =>
-  sendEmail(
-    email,
-    "ImageBox - Your Verification Code",
+export const sendOTP = async (email: string, otp: string): Promise<void> => {
+  const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+
+  sendSmtpEmail.subject = `Verify your Account`;
+  sendSmtpEmail.sender = { "name": "Your App Name", "email": process.env.SENDER_EMAIL };
+  sendSmtpEmail.to = [{ "email": email }];
+
+  sendSmtpEmail.htmlContent =
     `
     <div style="font-family: Arial, sans-serif; background-color: #f8f9fa; padding: 20px;">
       <div style="max-width: 500px; margin: auto; background: #ffffff; border-radius: 8px; padding: 24px; border: 1px solid #eee;">
@@ -54,5 +41,13 @@ export const sendOTP = async (email: string, otp: string) =>
         </p>
       </div>
     </div>
-    `
-  );
+    `;
+
+  try {
+    await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.log('OTP sent successfully using Brevo API.');
+  } catch (error: any) {
+    console.error('Error sending OTP via Brevo API:', error.response?.body || error);
+    throw new Error('Failed to send OTP email.');
+  }
+};
