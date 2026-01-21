@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { verifyOtpAPI, resendOtpAPI } from "../services/authServices";
 import toast from "react-hot-toast";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useFormik } from "formik";
+import * as Yup from "yup";
+import { showErrorToast } from "../utils/errorHandler";
 
 const OtpVerificationPage = () => {
   const navigate = useNavigate();
@@ -9,7 +12,6 @@ const OtpVerificationPage = () => {
   const email = location.state?.email || "";
   const purpose = location.state?.purpose || "register";
 
-  const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(60);
 
@@ -30,30 +32,37 @@ const OtpVerificationPage = () => {
     }
   }, [navigate]);
 
-  const handleVerify = async () => {
-    if (!otp) return toast.error("Please enter the OTP");
-    setLoading(true);
-    try {
-      const res = await verifyOtpAPI(email, otp, purpose);
-      // Backend returns data in a 'data' property
-      if (res?.data?.purpose === "reset-password") {
-        toast.success("OTP verified! Proceed to reset password");
-        navigate("/reset-password", { state: { email } });
-      } else if (res?.data?.accessToken) {
-        localStorage.setItem("accessToken", res.data.accessToken);
-        toast.success("OTP verified successfully");
-        navigate("/dashboard");
-      } else {
-        // Fallback for unexpected response structure
-        toast.error("Verification successful but missing next step");
+  const formik = useFormik({
+    initialValues: {
+      otp: "",
+    },
+    validationSchema: Yup.object({
+      otp: Yup.string()
+        .length(6, "OTP must be exactly 6 digits")
+        .matches(/^\d+$/, "OTP must contain only numbers")
+        .required("OTP is required"),
+    }),
+    onSubmit: async (values) => {
+      setLoading(true);
+      try {
+        const res = await verifyOtpAPI(email, values.otp, purpose);
+        if (res?.data?.purpose === "reset-password") {
+          toast.success("OTP verified! Proceed to reset password");
+          navigate("/reset-password", { state: { email } });
+        } else if (res?.data?.accessToken) {
+          localStorage.setItem("accessToken", res.data.accessToken);
+          toast.success("OTP verified successfully");
+          navigate("/dashboard");
+        } else {
+          toast.error("Verification successful but missing next step");
+        }
+      } catch (error) {
+        showErrorToast(error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.log(error);
-      toast.error("Invalid or expired OTP. Try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+  });
 
   const handleResend = async () => {
     if (timer > 0) return;
@@ -61,39 +70,54 @@ const OtpVerificationPage = () => {
       await resendOtpAPI(email);
       setTimer(60);
       toast.success("OTP resent successfully");
-    } catch {
-      toast.error("Failed to resend OTP. Try again.");
+    } catch (error) {
+      showErrorToast(error);
     }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-linear-to-br from-orange-50 to-amber-100">
-      <div className="bg-white shadow-lg rounded-3xl p-8 w-full max-w-md">
-        <h2 className="text-2xl font-light mb-6 text-center">Verify OTP 🔐</h2>
-        <p className="text-center text-gray-600 mb-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-linear-to-br from-orange-50 to-amber-100 p-6">
+      <div className="bg-white shadow-lg rounded-3xl p-8 w-full max-w-md text-center">
+        <h2 className="text-2xl font-light mb-6">Verify OTP 🔐</h2>
+        <p className="text-stone-600 mb-6 font-light">
           We’ve sent a 6-digit OTP to <b>{email}</b>
         </p>
 
-        <input
-          type="text"
-          maxLength={6}
-          placeholder="Enter OTP"
-          value={otp}
-          onChange={(e) => setOtp(e.target.value)}
-          className="w-full border border-gray-300 rounded-xl py-3 px-4 mb-4 text-center tracking-widest text-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none"
-        />
+        <form onSubmit={formik.handleSubmit}>
+          <div className="mb-6">
+            <input
+              type="text"
+              name="otp"
+              maxLength={6}
+              placeholder="Enter OTP"
+              value={formik.values.otp}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              className={`w-full border rounded-xl py-3 px-4 text-center tracking-widest text-lg focus:outline-none focus:ring-2 transition-all font-light ${formik.touched.otp && formik.errors.otp
+                  ? "border-red-400 focus:border-red-400 focus:ring-red-100"
+                  : "border-gray-300 focus:border-amber-400 focus:ring-amber-100"
+                }`}
+            />
+            {formik.touched.otp && formik.errors.otp && (
+              <p className="text-red-500 text-xs mt-2 font-light">{formik.errors.otp}</p>
+            )}
+          </div>
 
-        <button
-          onClick={handleVerify}
-          disabled={loading}
-          className="w-full py-3 bg-linear-to-r from-amber-400 to-orange-400 text-white rounded-xl shadow hover:scale-[1.02] transition-all"
-        >
-          {loading ? "Verifying..." : "Verify OTP"}
-        </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className={`w-full py-3 text-white rounded-xl shadow transition-all duration-300 font-light ${loading
+                ? "bg-stone-300 cursor-not-allowed"
+                : "bg-linear-to-r from-amber-400 to-orange-400 hover:scale-[1.02] hover:shadow-lg"
+              }`}
+          >
+            {loading ? "Verifying..." : "Verify OTP"}
+          </button>
+        </form>
 
-        <div className="text-center mt-6">
+        <div className="mt-8">
           {timer > 0 ? (
-            <p className="text-sm text-gray-500 font-light">
+            <p className="text-sm text-stone-500 font-light">
               Resend OTP in <span className="text-amber-600 font-medium">{timer}s</span>
             </p>
           ) : (

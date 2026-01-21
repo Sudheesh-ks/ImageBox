@@ -22,10 +22,14 @@ export class AuthController implements IAuthController {
       sendResponse(res, HttpStatus.OK, true, HttpResponse.OTP_SENT);
 
     } catch (error) {
-      res.status(HttpStatus.BAD_REQUEST).json({
-        success: false,
-        message: (error as Error).message || HttpResponse.SERVER_ERROR,
-      });
+      sendResponse(
+        res,
+        HttpStatus.BAD_REQUEST,
+        false,
+        (error as Error).message || HttpResponse.SERVER_ERROR,
+        null,
+        error
+      );
     }
   }
 
@@ -50,8 +54,8 @@ export class AuthController implements IAuthController {
 
         res.cookie("refreshToken", refreshToken, {
           httpOnly: true,
-          secure: false, // Changed for local development
-          sameSite: "lax", // Changed for local development
+          secure: false,
+          sameSite: "lax",
           domain: process.env.COOKIE_DOMAIN,
           path: '/',
           maxAge: 7 * 24 * 60 * 60 * 1000,
@@ -72,7 +76,7 @@ export class AuthController implements IAuthController {
 
       sendResponse(res, HttpStatus.BAD_REQUEST, false, HttpResponse.BAD_REQUEST);
     } catch (error) {
-      sendResponse(res, HttpStatus.UNAUTHORIZED, false, (error as Error).message, null, error);
+      sendResponse(res, HttpStatus.BAD_REQUEST, false, (error as Error).message);
     }
   }
 
@@ -85,7 +89,7 @@ export class AuthController implements IAuthController {
     } catch (error) {
       sendResponse(
         res,
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.BAD_REQUEST,
         false,
         (error as Error).message || HttpResponse.OTP_SEND_FAILED,
         null,
@@ -103,7 +107,7 @@ export class AuthController implements IAuthController {
     } catch (error) {
       sendResponse(
         res,
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.BAD_REQUEST,
         false,
         (error as Error).message || HttpResponse.OTP_SEND_FAILED,
         null,
@@ -141,8 +145,8 @@ export class AuthController implements IAuthController {
 
       res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
-        secure: false, // Changed for local development
-        sameSite: "lax", // Changed for local development
+        secure: false,
+        sameSite: "lax",
         domain: process.env.COOKIE_DOMAIN,
         path: '/',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
@@ -159,7 +163,7 @@ export class AuthController implements IAuthController {
   async logout(req: Request, res: Response): Promise<void> {
     res.clearCookie("refreshToken", {
       httpOnly: true,
-      secure: false, // Must match the setting used when setting the cookie
+      secure: false,
       sameSite: "lax",
       domain: process.env.COOKIE_DOMAIN,
       path: "/",

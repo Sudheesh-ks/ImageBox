@@ -1,6 +1,5 @@
 import { userApi } from "../axios/axiosInstance";
 import { AUTH_API } from "../constants/apiConstants";
-import { showErrorToast } from "../utils/errorHandler";
 
 interface RegisterData {
   email: string;
@@ -10,12 +9,8 @@ interface RegisterData {
 
 // Register new user
 export const registerAPI = async (data: RegisterData) => {
-  try {
-    const res = await userApi.post(AUTH_API.REGISTER, data);
-    return res.data;
-  } catch (error) {
-    showErrorToast(error);
-  }
+  const res = await userApi.post(AUTH_API.REGISTER, data);
+  return res.data;
 };
 
 // Verify OTP
@@ -24,62 +19,42 @@ export const verifyOtpAPI = async (
   otp: string,
   purpose: string
 ) => {
-  try {
-    const res = await userApi.post(AUTH_API.VERIFY_OTP, {
-      email,
-      otp,
-      purpose,
-    });
-    return res.data;
-  } catch (error) {
-    showErrorToast(error);
-  }
+  const res = await userApi.post(AUTH_API.VERIFY_OTP, {
+    email,
+    otp,
+    purpose,
+  });
+  return res.data;
 };
 
 // Resend OTP
 export const resendOtpAPI = async (email: string) => {
-  try {
-    const res = await userApi.post(AUTH_API.RESEND_OTP, { email });
-    return res.data;
-  } catch (error) {
-    showErrorToast(error);
-  }
+  const res = await userApi.post(AUTH_API.RESEND_OTP, { email });
+  return res.data;
 };
 
 // Login
 export const loginAPI = async (email: string, password: string) => {
-  try {
-    const res = await userApi.post(AUTH_API.LOGIN, { email, password });
-    return res.data;
-  } catch (error) {
-    showErrorToast(error);
-  }
+  const res = await userApi.post(AUTH_API.LOGIN, { email, password });
+  return res.data;
 };
 
 // Forgot Password
 export const forgotPasswordAPI = async (email: string) => {
-  try {
-    const res = await userApi.post(AUTH_API.FORGOT_PASSWORD, { email });
-    return res.data;
-  } catch (error) {
-    showErrorToast(error);
-  }
+  const res = await userApi.post(AUTH_API.FORGOT_PASSWORD, { email });
+  return res.data;
 };
 
 // Reset Password
 export const resetPasswordAPI = async (email: string, newPassword: string) => {
-  try {
-    const res = await userApi.post(AUTH_API.RESET_PASSWORD, {
-      email,
-      newPassword,
-    });
-    return res.data;
-  } catch (error) {
-    showErrorToast(error);
-  }
+  const res = await userApi.post(AUTH_API.RESET_PASSWORD, {
+    email,
+    newPassword,
+  });
+  return res.data;
 };
 
-// Refresh token
+// Refresh token - Keep try-catch as it has specific internal recovery logic
 export const refreshTokenAPI = async (): Promise<string | null> => {
   try {
     const res = await userApi.get(AUTH_API.REFRESH_TOKEN, {
@@ -97,10 +72,6 @@ export const refreshTokenAPI = async (): Promise<string | null> => {
 
 // Logout
 export const logoutAPI = async () => {
-  try {
-    const res = await userApi.post(AUTH_API.LOGOUT);
-    return res.data;
-  } catch (error) {
-    showErrorToast(error);
-  }
+  const res = await userApi.post(AUTH_API.LOGOUT);
+  return res.data;
 };
