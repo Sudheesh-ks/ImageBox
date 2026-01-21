@@ -12,7 +12,7 @@ import { AuthPurpose } from "../../constants/authPurpose.constants";
 import { sendResponse } from "../../utils/apiResponse";
 
 export class AuthController implements IAuthController {
-  constructor(private readonly _userService: IAuthService) {}
+  constructor(private readonly _userService: IAuthService) { }
 
   async registerUser(req: Request, res: Response): Promise<void> {
     const { email, password, phone } = req.body;
@@ -50,29 +50,29 @@ export class AuthController implements IAuthController {
 
         res.cookie("refreshToken", refreshToken, {
           httpOnly: true,
-          secure: true,
-          sameSite: "none",
+          secure: false, // Changed for local development
+          sameSite: "lax", // Changed for local development
           domain: process.env.COOKIE_DOMAIN,
           path: '/',
           maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
         sendResponse(res, HttpStatus.CREATED, true, HttpResponse.REGISTER_SUCCESS, {
-  accessToken,
-});
+          accessToken,
+        });
         return;
       }
 
       if (purpose === AuthPurpose.RESET_PASSWORD) {
         sendResponse(res, HttpStatus.OK, true, HttpResponse.OTP_VERIFIED, {
-  purpose: AuthPurpose.RESET_PASSWORD,
-});
+          purpose: AuthPurpose.RESET_PASSWORD,
+        });
         return;
       }
 
       sendResponse(res, HttpStatus.BAD_REQUEST, false, HttpResponse.BAD_REQUEST);
     } catch (error) {
-           sendResponse(res, HttpStatus.UNAUTHORIZED, false, (error as Error).message, null, error);
+      sendResponse(res, HttpStatus.UNAUTHORIZED, false, (error as Error).message, null, error);
     }
   }
 
@@ -84,13 +84,13 @@ export class AuthController implements IAuthController {
       sendResponse(res, HttpStatus.OK, true, HttpResponse.OTP_RESENT);
     } catch (error) {
       sendResponse(
-  res,
-  HttpStatus.INTERNAL_SERVER_ERROR,
-  false,
-  (error as Error).message || HttpResponse.OTP_SEND_FAILED,
-  null,
-  error
-);
+        res,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        false,
+        (error as Error).message || HttpResponse.OTP_SEND_FAILED,
+        null,
+        error
+      );
     }
   }
 
@@ -102,13 +102,13 @@ export class AuthController implements IAuthController {
       sendResponse(res, HttpStatus.OK, true, HttpResponse.OTP_SENT);
     } catch (error) {
       sendResponse(
-  res,
-  HttpStatus.INTERNAL_SERVER_ERROR,
-  false,
-  (error as Error).message || HttpResponse.OTP_SEND_FAILED,
-  null,
-  error
-);
+        res,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        false,
+        (error as Error).message || HttpResponse.OTP_SEND_FAILED,
+        null,
+        error
+      );
     }
   }
 
@@ -120,13 +120,13 @@ export class AuthController implements IAuthController {
       sendResponse(res, HttpStatus.OK, true, HttpResponse.PASSWORD_UPDATED);
     } catch (error) {
       sendResponse(
-  res,
-  HttpStatus.BAD_REQUEST,
-  false,
-  (error as Error).message || HttpResponse.OTP_EXPIRED_OR_INVALID,
-  null,
-  error
-);
+        res,
+        HttpStatus.BAD_REQUEST,
+        false,
+        (error as Error).message || HttpResponse.OTP_EXPIRED_OR_INVALID,
+        null,
+        error
+      );
     }
   }
 
@@ -141,54 +141,60 @@ export class AuthController implements IAuthController {
 
       res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
-        secure: true,
-        sameSite: "none",
+        secure: false, // Changed for local development
+        sameSite: "lax", // Changed for local development
         domain: process.env.COOKIE_DOMAIN,
         path: '/',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
       sendResponse(res, HttpStatus.OK, true, HttpResponse.LOGIN_SUCCESS, {
-  accessToken,
-});
+        accessToken,
+      });
     } catch (error) {
       sendResponse(res, HttpStatus.BAD_REQUEST, false, (error as Error).message, null, error);
     }
   }
 
   async logout(req: Request, res: Response): Promise<void> {
-    res.clearCookie("refreshToken");
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: false, // Must match the setting used when setting the cookie
+      sameSite: "lax",
+      domain: process.env.COOKIE_DOMAIN,
+      path: "/",
+    });
     sendResponse(res, HttpStatus.OK, true, "Logged out successfully");
   }
 
 
   async refreshToken(req: Request, res: Response): Promise<void> {
-  try {
-    const token = req.cookies.refreshToken;
-    if (!token) {
-       res.status(401).json({ success: false, message: "No refresh token" });
-       return
+    try {
+      const token = req.cookies.refreshToken;
+      if (!token) {
+        res.status(401).json({ success: false, message: "No refresh token" });
+        return
+      }
+
+      const decoded = verifyRefreshToken(token);
+
+      const user = await this._userService.getUserById(decoded.id);
+
+      const newAccessToken = generateAccessToken(decoded.id, user!.email);
+
+      res.status(200).json({
+        success: true,
+        accessToken: newAccessToken,
+      });
+      return
+
+    } catch (error) {
+      res.status(401).json({
+        success: false,
+        message: "Invalid refresh token",
+      });
+      return
     }
-
-    const decoded = verifyRefreshToken(token);
-
-    const user = await this._userService.getUserById(decoded.id);
-
-    const newAccessToken = generateAccessToken(decoded.id, user!.email);
-
-     res.status(200).json({
-      success: true,
-      accessToken: newAccessToken,
-    });
-    return
-
-  } catch (error) {
-     res.status(401).json({
-      success: false,
-      message: "Invalid refresh token",
-    });
-    return
   }
-}
 
 }

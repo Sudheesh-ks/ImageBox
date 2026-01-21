@@ -1,14 +1,29 @@
 import nodemailer from "nodemailer";
+import dotenv from "dotenv";
+dotenv.config();
 
 const { MAIL_EMAIL, MAIL_PASSWORD } = process.env as Record<string, string>;
 
+console.log("Mail Config:", {
+  user: MAIL_EMAIL ? "Present" : "Missing",
+  pass: MAIL_PASSWORD ? "Present" : "Missing"
+});
+
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true, // Use SSL
   auth: { user: MAIL_EMAIL, pass: MAIL_PASSWORD },
 });
 
 export const sendEmail = async (to: string, subject: string, html: string) => {
-  await transporter.sendMail({ from: MAIL_EMAIL, to, subject, html });
+  try {
+    const info = await transporter.sendMail({ from: MAIL_EMAIL, to, subject, html });
+    console.log("Email sent successfully:", info.messageId);
+  } catch (error) {
+    console.error("Error sending email:", error);
+    throw error;
+  }
 };
 
 // OTP

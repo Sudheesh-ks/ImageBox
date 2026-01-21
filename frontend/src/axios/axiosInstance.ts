@@ -20,15 +20,26 @@ userApi.interceptors.response.use(
   (res) => res,
   async (error) => {
     const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const isRefreshRequest = originalRequest.url?.includes("/refresh-token");
+
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !isRefreshRequest
+    ) {
       originalRequest._retry = true;
-      const newAccess = await refreshTokenAPI();
-      if (newAccess) {
-        originalRequest.headers.Authorization = `Bearer ${newAccess}`;
-        return userApi(originalRequest);
-      } else {
-        window.location.href = "/";
+      try {
+        const newAccess = await refreshTokenAPI();
+        if (newAccess) {
+          originalRequest.headers.Authorization = `Bearer ${newAccess}`;
+          return userApi(originalRequest);
+        }
+      } catch (refreshError) {
+        console.error("Token refresh failed:", refreshError);
       }
+
+      localStorage.removeItem("accessToken");
+      window.location.href = "/";
     }
     return Promise.reject(error);
   }

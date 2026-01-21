@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Upload, Edit2, Trash2, X, Check, ZoomIn, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -8,7 +8,7 @@ import {
   deleteImageAPI,
   updateImageOrderAPI,
 } from "../services/imageServices";
-import { logoutAPI, refreshTokenAPI } from "../services/authServices";
+import { logoutAPI } from "../services/authServices";
 import ConfirmModal from "../components/confirmModal";
 import ImageUploadModal from "../components/imageUploader";
 import type { ImageType, SelectedFile } from "../types/dashboard";
@@ -20,7 +20,7 @@ type ConfirmModalState = {
   onConfirm: (() => Promise<void>) | null;
 };
 
-const Dashboard: React.FC = () => {
+const Dashboard = () => {
   const navigate = useNavigate();
 
   const [images, setImages] = useState<ImageType[]>([]);
@@ -45,16 +45,7 @@ const Dashboard: React.FC = () => {
   const editFileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    const initialize = async () => {
-      const accessToken = await refreshTokenAPI();
-      if (accessToken) {
-        fetchImages();
-      } else {
-        navigate("/", { replace: true });
-      }
-    };
-
-    initialize();
+    fetchImages();
   }, []);
 
   const fetchImages = async (): Promise<void> => {
@@ -239,7 +230,6 @@ const Dashboard: React.FC = () => {
             </button>
           </div>
 
-          {/* Upload area */}
           <div
             onClick={() => fileInputRef.current?.click()}
             className="group relative border-2 border-dashed border-stone-300 rounded-2xl p-12 bg-white/50 hover:bg-white hover:border-amber-400 transition-all duration-300 cursor-pointer"
@@ -268,7 +258,6 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Image grid */}
         {loading ? (
           <div className="text-center py-20 text-stone-500">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3" />
@@ -283,9 +272,8 @@ const Dashboard: React.FC = () => {
                 onDragStart={() => handleDragStart(index)}
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragEnd={handleDragEnd}
-                className={`group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 ${
-                  draggedIndex === index ? "opacity-50 scale-95" : ""
-                }`}
+                className={`group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 ${draggedIndex === index ? "opacity-50 scale-95" : ""
+                  }`}
               >
                 <div className="relative aspect-4/3 overflow-hidden bg-stone-100">
                   <img
@@ -434,7 +422,6 @@ const Dashboard: React.FC = () => {
         )}
       </div>
 
-      {/* Upload Modal */}
       <ImageUploadModal
         isOpen={showUploadModal}
         onClose={() => {
@@ -446,7 +433,6 @@ const Dashboard: React.FC = () => {
         setSelectedFiles={setSelectedFiles}
       />
 
-      {/* Zoom Modal */}
       {zoomedImage && (
         <div
           onClick={() => setZoomedImage(null)}
@@ -478,7 +464,6 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Confirm Modal */}
       {confirmModal.show && confirmModal.onConfirm && (
         <ConfirmModal
           title={confirmModal.title}

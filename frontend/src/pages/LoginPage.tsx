@@ -17,10 +17,7 @@ const LoginPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const accessToken = localStorage.getItem("accessToken");
-    if (accessToken) {
-      navigate("/dashboard");
-    }
+    // Auth handled by PublicRoute
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -170,11 +167,10 @@ const LoginPage = () => {
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className={`w-full py-4 text-white rounded-xl font-light text-lg shadow-md flex items-center justify-center gap-2 group transition-all duration-300 ${
-                loading
+              className={`w-full py-4 text-white rounded-xl font-light text-lg shadow-md flex items-center justify-center gap-2 group transition-all duration-300 ${loading
                   ? "bg-gray-400 cursor-not-allowed"
                   : "bg-linear-to-r from-amber-400 to-orange-400 hover:shadow-xl hover:scale-[1.02]"
-              }`}
+                }`}
             >
               {loading ? (
                 "Processing..."
