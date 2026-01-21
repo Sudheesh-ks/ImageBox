@@ -25,7 +25,8 @@ userApi.interceptors.response.use(
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
-      !isRefreshRequest
+      !isRefreshRequest &&
+      !originalRequest.url?.includes("/logout")
     ) {
       originalRequest._retry = true;
       try {

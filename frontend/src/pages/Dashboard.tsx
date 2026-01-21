@@ -177,8 +177,8 @@ const Dashboard = () => {
   const handleLogout = async (): Promise<void> => {
     setActionLoading("logout");
     try {
-      await logoutAPI();
       localStorage.removeItem("accessToken");
+      await logoutAPI();
       toast.success("Logged out successfully");
       navigate("/", { replace: true });
     } catch (err) {
