@@ -11,12 +11,11 @@ export const validate =
                 next();
             } catch (error) {
                 if (error instanceof ZodError) {
-                    const errorMessages = error.errors.map((issue: any) => ({
+                    const errorMessages = error.issues.map((issue: any) => ({
                         path: issue.path.join("."),
                         message: issue.message,
                     }));
 
-                    // Return the first error message for simplicity as current frontend expects a single message
                     const message = errorMessages[0]?.message || "Validation failed";
 
                     sendResponse(res, HttpStatus.BAD_REQUEST, false, message, {
