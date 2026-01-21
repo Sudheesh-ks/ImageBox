@@ -8,8 +8,20 @@ const OtpVerificationPage = () => {
   const location = useLocation();
   const email = location.state?.email || "";
   const purpose = location.state?.purpose || "register";
+
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
+  const [timer, setTimer] = useState(60);
+
+  useEffect(() => {
+    let interval: any;
+    if (timer > 0) {
+      interval = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [timer]);
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
@@ -23,13 +35,17 @@ const OtpVerificationPage = () => {
     setLoading(true);
     try {
       const res = await verifyOtpAPI(email, otp, purpose);
-      if (res?.purpose === "reset-password") {
+      // Backend returns data in a 'data' property
+      if (res?.data?.purpose === "reset-password") {
         toast.success("OTP verified! Proceed to reset password");
         navigate("/reset-password", { state: { email } });
-      } else {
-        localStorage.setItem("accessToken", res.data.token);
+      } else if (res?.data?.accessToken) {
+        localStorage.setItem("accessToken", res.data.accessToken);
         toast.success("OTP verified successfully");
         navigate("/dashboard");
+      } else {
+        // Fallback for unexpected response structure
+        toast.error("Verification successful but missing next step");
       }
     } catch (error) {
       console.log(error);
@@ -38,9 +54,12 @@ const OtpVerificationPage = () => {
       setLoading(false);
     }
   };
+
   const handleResend = async () => {
+    if (timer > 0) return;
     try {
       await resendOtpAPI(email);
+      setTimer(60);
       toast.success("OTP resent successfully");
     } catch {
       toast.error("Failed to resend OTP. Try again.");
@@ -72,12 +91,20 @@ const OtpVerificationPage = () => {
           {loading ? "Verifying..." : "Verify OTP"}
         </button>
 
-        <p
-          className="text-center text-sm mt-4 text-amber-600 hover:underline cursor-pointer"
-          onClick={handleResend}
-        >
-          Resend OTP
-        </p>
+        <div className="text-center mt-6">
+          {timer > 0 ? (
+            <p className="text-sm text-gray-500 font-light">
+              Resend OTP in <span className="text-amber-600 font-medium">{timer}s</span>
+            </p>
+          ) : (
+            <button
+              onClick={handleResend}
+              className="text-sm text-amber-600 hover:text-amber-700 hover:underline transition-colors font-medium focus:outline-none"
+            >
+              Resend OTP
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
