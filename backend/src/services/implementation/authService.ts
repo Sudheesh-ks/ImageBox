@@ -19,7 +19,7 @@ export class AuthService implements IAuthService {
   constructor(
     private readonly _userRepository: IAuthRepository,
     private readonly _otpRepository: IOtpRepository
-  ) {}
+  ) { }
 
   async register(
     email: string,
@@ -106,13 +106,18 @@ export class AuthService implements IAuthService {
     const oldRecord = await this._otpRepository.getOtp(email);
 
     if (!oldRecord) {
-      throw new Error("No pending OTP found. Please register again.");
+      throw new Error(HttpResponse.OTP_NOT_FOUND);
     }
 
     const newOtp = generateOTP();
     console.log("Generated new OTP:", newOtp);
 
-    const updatedRecord = { ...oldRecord, otp: newOtp };
+    // Extract necessary data from oldRecord to avoid spread issues with Mongoose documents
+    const updatedRecord = {
+      otp: newOtp,
+      purpose: oldRecord.purpose,
+      userData: oldRecord.userData,
+    };
 
     await this._otpRepository.storeOtp(email, updatedRecord);
     sendOTP(email, newOtp).catch((err) =>

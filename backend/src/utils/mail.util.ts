@@ -14,7 +14,7 @@ export const sendOTP = async (email: string, otp: string): Promise<void> => {
   const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
 
   sendSmtpEmail.subject = `Verify your Account`;
-  sendSmtpEmail.sender = { "name": "Your App Name", "email": process.env.SENDER_EMAIL };
+  sendSmtpEmail.sender = { "name": "Image Box", "email": process.env.SENDER_EMAIL };
   sendSmtpEmail.to = [{ "email": email }];
 
   sendSmtpEmail.htmlContent =
