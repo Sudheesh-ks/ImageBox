@@ -112,7 +112,6 @@ export class AuthService implements IAuthService {
     const newOtp = generateOTP();
     console.log("Generated new OTP:", newOtp);
 
-    // Extract necessary data from oldRecord to avoid spread issues with Mongoose documents
     const updatedRecord = {
       otp: newOtp,
       purpose: oldRecord.purpose,
