@@ -6,6 +6,7 @@ import { IImageService } from "../interface/iImageServices";
 import mongoose from "mongoose";
 import { ImageDTO } from "../../dtos/image.dto";
 import { toImageDTO, toImageDTOs } from "../../mappers/image.mapper";
+import sharp from "sharp";
 
 export class ImageService implements IImageService {
   constructor(private readonly _imageRepository: IImageRepository) {}
@@ -13,17 +14,40 @@ export class ImageService implements IImageService {
   async uploadImages(
     files: Express.Multer.File[],
     titles: string[],
-    userId: string
+    userId: string,
   ): Promise<ImageDTO[]> {
     const uploadedImages = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const title = titles[i] || file.originalname;
 
+      const compressedBuffer = await sharp(file.buffer)
+        .resize({ width: 1200 })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+
+      console.log("original:", file.size / 1024);
+      console.log("compressed:", compressedBuffer.length / 1024);
+
+      const uploadResult = await new Promise<any>((resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream(
+            {
+              folder: "imagebox",
+              resource_type: "image",
+            },
+            (error, result) => {
+              if (error) return reject(error);
+              else resolve(result);
+            },
+          )
+          .end(compressedBuffer);
+      });
+
       const image = await this._imageRepository.createImage({
         title,
-        url: (file as any).path,
-        public_id: (file as any).filename,
+        url: uploadResult.secure_url,
+        public_id: uploadResult.public_id,
         userId: new mongoose.Types.ObjectId(userId),
       });
 
@@ -33,17 +57,18 @@ export class ImageService implements IImageService {
   }
 
   async getImages(
-    userId: string
+    userId: string,
   ): Promise<{ images: ImageDTO[]; total: number }> {
     if (!userId) throw new Error(HttpResponse.UNAUTHORIZED);
-    const { images, total } = await this._imageRepository.getImagesPaginated(userId);
+    const { images, total } =
+      await this._imageRepository.getImagesPaginated(userId);
     return { images: toImageDTOs(images), total };
   }
 
   async updateImage(
     id: string,
     title: string,
-    newFile?: Express.Multer.File
+    newFile?: Express.Multer.File,
   ): Promise<ImageDTO | null> {
     if (!id) throw new Error(HttpResponse.FIELDS_REQUIRED);
 
@@ -59,7 +84,7 @@ export class ImageService implements IImageService {
 
     const updatedImage = await this._imageRepository.updateImageById(
       id,
-      updates
+      updates,
     );
     if (!updatedImage) throw new Error(HttpResponse.IMAGE_UPDATE_FAILED);
 
