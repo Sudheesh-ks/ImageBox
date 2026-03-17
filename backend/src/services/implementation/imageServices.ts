@@ -75,10 +75,29 @@ export class ImageService implements IImageService {
     let updates: Partial<ImageDocument> = { title };
 
     if (newFile) {
+      const compressedBuffer = await sharp(newFile.buffer)
+        .resize({ width: 1200 })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+      
+      const uploadResult = await new Promise<any>((resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream(
+            {
+              folder: "imagebox",
+            },
+            (error, result) => {
+              if (error) return reject(error);
+              else resolve(result);
+            }
+          )
+          .end(compressedBuffer);
+      });
+      
       updates = {
         ...updates,
-        url: (newFile as any).path,
-        public_id: (newFile as any).filename,
+        url: uploadResult.secure_url,
+        public_id: uploadResult.public_id,
       };
     }
 
